@@ -1,9 +1,11 @@
+// package
 package amqpclient
 
 import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -34,6 +36,8 @@ type ConnectionManager struct {
 	done            chan bool
 	isReady         bool
 	redactedAddr    string
+
+	cmu sync.Mutex
 }
 
 func NewConnectionManager(log logr.Logger, addr string) (*ConnectionManager, error) {
@@ -56,6 +60,11 @@ func NewConnectionManager(log logr.Logger, addr string) (*ConnectionManager, err
 }
 
 func (m *ConnectionManager) Channel() (*amqp091.Channel, error) {
+	if !m.cmu.TryLock() {
+		return nil, ErrNotReady
+	}
+	defer m.cmu.Unlock()
+
 	select {
 	case <-m.done:
 		return nil, ErrAlreadyClosed
@@ -125,12 +134,20 @@ func (m *ConnectionManager) Close() error {
 
 	m.logger.Info("Shutting down")
 	close(m.done)
+	time.Sleep(100 * time.Millisecond)
 
-	if err := m.channel.Close(); err != nil {
-		return err
+	if m.channel != nil {
+		m.logger.V(1).Info("Closing channel")
+		if err := m.channel.Close(); err != nil {
+			return err
+		}
 	}
-	if err := m.connection.Close(); err != nil {
-		return err
+
+	if m.connection != nil {
+		m.logger.V(1).Info("Closing connection")
+		if err := m.connection.Close(); err != nil {
+			return err
+		}
 	}
 
 	m.isReady = false
@@ -216,6 +233,9 @@ func (m *ConnectionManager) connect(addr string) error {
 }
 
 func (m *ConnectionManager) open() error {
+	m.cmu.Lock()
+	defer m.cmu.Unlock()
+
 	ch, err := m.connection.Channel()
 	if err != nil {
 		return err
