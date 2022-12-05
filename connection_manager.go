@@ -33,11 +33,11 @@ type ConnectionManager struct {
 	notifyConnClose chan *amqp091.Error
 	notifyChanClose chan *amqp091.Error
 	notifyPublish   chan amqp091.Confirmation
+	reconnectExit   chan bool
 	done            chan bool
+	cmu             sync.Mutex
 	isReady         bool
 	redactedAddr    string
-
-	cmu sync.Mutex
 }
 
 func NewConnectionManager(log logr.Logger, addr string) (*ConnectionManager, error) {
@@ -134,7 +134,7 @@ func (m *ConnectionManager) Close() error {
 
 	m.logger.Info("Shutting down")
 	close(m.done)
-	time.Sleep(100 * time.Millisecond)
+	<-m.reconnectExit
 
 	if m.channel != nil {
 		m.logger.V(1).Info("Closing channel")
@@ -174,6 +174,7 @@ func (m *ConnectionManager) handleReconnect(addr string) {
 			break
 		}
 	}
+	close(m.reconnectExit)
 }
 
 func (m *ConnectionManager) handleReopen() bool {
