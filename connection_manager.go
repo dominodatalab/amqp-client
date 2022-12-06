@@ -50,9 +50,10 @@ func NewConnectionManager(log logr.Logger, addr string) (*ConnectionManager, err
 	u, _ := url.Parse(addr)
 
 	client := &ConnectionManager{
-		logger:       log.WithName("connection-manager"),
-		redactedAddr: u.Redacted(),
-		done:         make(chan bool),
+		logger:        log.WithName("connection-manager"),
+		redactedAddr:  u.Redacted(),
+		done:          make(chan bool),
+		reconnectExit: make(chan bool),
 	}
 	go client.handleReconnect(addr)
 
