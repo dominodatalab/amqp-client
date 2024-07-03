@@ -1,12 +1,12 @@
 module github.com/dominodatalab/amqp-client
 
-go 1.19
+go 1.22.0
 
 require (
-	github.com/avast/retry-go/v4 v4.3.1
-	github.com/go-logr/logr v1.2.3
-	github.com/rabbitmq/amqp091-go v1.5.0
-	github.com/stretchr/testify v1.8.1
+	github.com/avast/retry-go/v4 v4.6.0
+	github.com/go-logr/logr v1.4.2
+	github.com/rabbitmq/amqp091-go v1.10.0
+	github.com/stretchr/testify v1.9.0
 )
 
 require (

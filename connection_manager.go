@@ -205,7 +205,7 @@ func (m *ConnectionManager) handleReopen() bool {
 func (m *ConnectionManager) retryUntilSuccessful(retryable retry.RetryableFunc, onRetry retry.OnRetryFunc) {
 	_ = retry.Do(
 		retryable,
-		retry.Attempts(0),
+		retry.UntilSucceeded(),
 		retry.Delay(retryDelay),
 		retry.MaxDelay(retryMaxDelay),
 		retry.DelayType(retry.BackOffDelay),
